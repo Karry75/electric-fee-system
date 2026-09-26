@@ -1,0 +1,1 @@
+{"code":0,"data":{"display_name":"系统管理员","id":1,"permissions":["overview:view","user:view","sales:view","site:view","asset:view","coupon:view","dashboard:view","staff:view","finance:view","service:view","analysis:view","alarm:handle","admin:user","profile:edit","profile:audit","expense:view"],"role":"admin","username":"admin"}}

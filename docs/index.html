@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电费管理系统</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- ============ 登录 ============ -->
+<div id="loginView" class="login-view hidden">
+  <div class="login-box">
+    <div class="login-logo">电</div>
+    <h1>电费管理系统</h1>
+    <p class="login-sub">电费看板 · 商户资料 · 费用支出</p>
+    <div class="login-form">
+      <input id="loginUser" type="text" placeholder="账号" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="密码" autocomplete="current-password">
+      <button id="loginBtn" class="btn primary block">登 录</button>
+      <div id="loginMsg" class="login-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主应用 ============ -->
+<div id="appView" class="app-view hidden">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">电</span><span>电费管理</span></div>
+    <nav id="menuNav" class="menu"></nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="top-actions">
+        <span class="top-user" id="topUser"></span>
+        <a class="btn small" href="/scan" target="_blank">扫码提交页</a>
+        <button id="logoutBtn" class="btn small ghost">退出</button>
+      </div>
+    </header>
+    <main class="content" id="pageContent"></main>
+  </div>
+</div>
+
+<!-- 轻提示 -->
+<div id="toast" class="toast hidden"></div>
+
+<script>
+// === 静态快照模式：拦截后端接口，改读本地真实脱敏数据（只读） ===
+(function () {
+  const MAP = {"/api/auth/me":"auth_me","/api/meta/menu":"meta_menu","/api/dashboard/kpi":"dashboard_kpi",
+    "/api/dashboard/warnings":"dashboard_warnings","/api/dashboard/settlements":"dashboard_settlements",
+    "/api/expense/overview":"expense_overview","/api/expense/unit":"expense_unit","/api/expense/ways":"expense_ways",
+    "/api/expense/bills":"expense_bills","/api/profiles/stats":"profiles_stats","/api/profiles":"profiles_list",
+    "/api/submits":"submits_list"};
+  const EMPTY = {"code":0,"data":{"items":[],"total":0}};
+  const jsonResp = o => new Response(JSON.stringify(o), {status:200, headers:{"Content-Type":"application/json;charset=utf-8"}});
+  const origFetch = window.fetch.bind(window);
+  window.fetch = async function (input, init) {
+    try {
+      const raw = typeof input === "string" ? input : (input && input.url) || "";
+      const u = new URL(raw, location.href);
+      const method = ((init && init.method) || "GET").toUpperCase();
+      let p = u.pathname.replace(/\/+$/, "") || "/";
+      const m = p.match(/\/api\/(.*)$/);
+      if (m) {
+        const key = "/api/" + m[1];
+        if (method !== "GET") return jsonResp({"code":0,"data":{}});          // 写操作：静态模式只读
+        if (key === "/api/auth/logout") return jsonResp({"code":0,"data":{}});
+        const f = MAP[key];
+        if (f) {
+          const r = await origFetch("data/" + f + ".json", {cache:"no-cache"});
+          if (r.ok) { const j = await r.json(); return jsonResp(j); }
+        }
+        return jsonResp(EMPTY);
+      }
+    } catch (e) { /* 回落真实请求 */ }
+    return origFetch(input, init);
+  };
+  window.STATIC_SNAPSHOT = true;
+})();
+</script>
+<script>
+// 顶部横幅
+document.addEventListener("DOMContentLoaded", function () {
+  const bar = document.createElement("div");
+  bar.style.cssText = "position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f172a;color:#e2e8f0;font-size:12px;padding:6px 12px;text-align:center;opacity:.92";
+  bar.textContent = "静态数据快照（只读）· 数据来自真实业务库聚合与脱敏，不支持登录/提交/导出等写操作";
+  document.body.appendChild(bar);
+});
+</script>
+<script src="lib/echarts.min.js"></script>
+<script src="js/app.js?v=20260922a"></script>
+</body>
+</html>
